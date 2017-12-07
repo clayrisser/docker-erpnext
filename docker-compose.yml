@@ -1,0 +1,29 @@
+nginx:
+  image: jamrizzi/erpnext:nginx
+  ports:
+    - 8080:80
+  links:
+    - erpnext
+
+erpnext:
+  image: jamrizzi/erpnext:stable
+  links:
+    - mariadb:db
+    - redis-socketio
+    - redis-cache
+    - redis-queue
+
+redis-cache:
+  image: redis
+
+redis-queue:
+  image: redis
+
+redis-socketio:
+  image: redis
+
+mariadb:
+  image: mariadb:latest
+  environment:
+    - MYSQL_ROOT_PASSWORD=hellodocker
+    - MYSQL_DATABASE=erpnext
