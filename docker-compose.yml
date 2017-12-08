@@ -1,12 +1,7 @@
-nginx:
-  image: jamrizzi/erpnext:nginx
-  ports:
-    - 8080:80
-  links:
-    - erpnext
-
 erpnext:
   image: jamrizzi/erpnext:stable
+  ports:
+    - 8080:80
   links:
     - mariadb:db
     - redis-socketio

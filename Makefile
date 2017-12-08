@@ -1,6 +1,6 @@
 CWD := $(shell pwd)
 TAG := stable
-IMAGE := "jamrizzi/green-docker:$(TAG)"
+IMAGE := "jamrizzi/erpnext:$(TAG)"
 SOME_CONTAINER := $(shell echo some-$(IMAGE) | sed 's/[^a-zA-Z0-9]//g')
 DOCKERFILE := $(CWD)/$(TAG)/Dockerfile
 

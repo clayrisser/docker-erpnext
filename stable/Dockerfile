@@ -34,8 +34,9 @@ RUN mkdir -p /tmp && cd /tmp && \
         linux-headers \
         build-base \
         curl \
-        git && \
-    curl -L -o /usr/local/bin/envstamp https://github.com/jamrizzi/envstamp/releases/download/v$ENVSTAMP_VERSION/envstamp && \
+        git
+
+RUN curl -L -o /usr/local/bin/envstamp https://github.com/jamrizzi/envstamp/releases/download/v$ENVSTAMP_VERSION/envstamp && \
     chmod +x /usr/local/bin/envstamp && \
     git clone https://github.com/frappe/bench && \
     pip install -e bench --no-cache-dir && \
