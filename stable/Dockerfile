@@ -1,71 +1,67 @@
 FROM alpine:3.7
 
-ENV BENCH_BRANCH=master \
-    ERPNEXT_BRANCH=master \
-    TAG=stable \
-    ENVSTAMP_VERSION=0.1.0
+ARG bench_branch=master
+ARG erpnext_branch=master
+ARG envstamp_version=0.1.0
 
-LABEL image=jamrizzi/erpnext:$TAG \
-      maintainer="Jam Risser <jam@jamrizzi.com>" \
+LABEL image=jamrizzi/erpnext:stable \
+      maintainer="Jam Risser <jam@jamrizzi.com> (https://jam.jamrizzi.com)" \
       base=alpine:3.7
 
-WORKDIR /app
+RUN apk add --no-cache \
+      fontconfig \
+      jpeg-dev \
+      libffi-dev \
+      libxslt-dev \
+      mariadb-client \
+      mariadb-dev \
+      nginx \
+      nodejs \
+      postgresql-dev \
+      py-pip \
+      python-dev \
+      supervisor \
+      ttf-freefont \
+      xvfb \
+      zlib-dev \
+      dbus
+RUN apk add --no-cache --virtual build-deps \
+      build-base \
+      curl \
+      git \
+      linux-headers
 
-RUN mkdir -p /tmp && cd /tmp && \
-    apk add --no-cache \
-        tini \
-        py-pip \
-        python-dev \
-        mariadb-client \
-        mariadb-dev \
-        zlib-dev \
-        jpeg-dev \
-        nginx \
-        libffi-dev \
-        postgresql-dev \
-        libxslt-dev \
-        xvfb \
-        ttf-freefont \
-        supervisor \
-        fontconfig \
-        dbus \
-        nodejs && \
-    apk add --no-cache --virtual build-deps \
-        linux-headers \
-        build-base \
-        curl \
-        git
-
-RUN curl -L -o /usr/local/bin/envstamp https://github.com/jamrizzi/envstamp/releases/download/v$ENVSTAMP_VERSION/envstamp && \
+RUN cd /tmp && \
+    curl -L -o /usr/local/bin/envstamp https://github.com/jamrizzi/envstamp/releases/download/v${envstamp_version}/envstamp && \
     chmod +x /usr/local/bin/envstamp && \
     git clone https://github.com/frappe/bench && \
     pip install -e bench --no-cache-dir && \
     addgroup -S frappe && \
     adduser -D -G frappe frappe && \
-    chown frappe:frappe /app && \
     echo 'frappe ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers
 
-COPY /$TAG/supervisord.conf /etc/supervisord/supervisord.conf
+WORKDIR /opt/erpnext
+
+COPY stable /tmp
+
+RUN mkdir -p apps logs sites/localhost config && \
+    chown -R frappe:frappe /opt/erpnext
 
 USER frappe
 
-RUN mkdir -p apps logs sites/localhost config && \
-    bench setup env && \
+RUN bench setup env && \
     bench setup socketio && \
-    bench get-app frappe https://github.com/frappe/frappe --branch $BENCH_BRANCH && \
-    cd apps/frappe && npm install && cd ../.. && \
-    bench get-app erpnext https://github.com/frappe/erpnext --branch $ERPNEXT_BRANCH && \
-    mv node_modules package-lock.json sites
+    bench get-app frappe https://github.com/frappe/frappe --branch ${bench_branch} && \
+    bench get-app erpnext https://github.com/frappe/erpnext --branch ${erpnext_branch} && \
+    envstamp /tmp/site_config.json && \
+    mv /tmp/site_config.json /app/sites/common_site_config.json && \
+    chown -R frappe:frappe /app
 
-COPY --chown=frappe /$TAG/site_config.json /app/sites/common_site_config.json
-COPY /$TAG/nginx.conf /etc/nginx/conf.d/default.conf
-COPY /$TAG/entrypoint.sh /scripts/nginx.sh
-COPY /$TAG/entrypoint.sh /scripts/entrypoint.sh
-
-USER root
-
-RUN apk del build-deps && \
-    rm -rf /tmp
+RUN mv /tmp/entrypoint.sh /usr/local/sbin/entrypoint.sh && \
+    mv /tmp/supervisord.conf /etc/supervisord.conf && \
+    mv /tmp/nginx.conf /etc/nginx/conf.d/default.conf && \
+    apk del build-deps && \
+    rm -rf /tmp/* /tmp/.* &>/dev/null || true
 
 ENV ADMIN_PASSWORD=frappe \
     DB_HOST=db \
@@ -83,4 +79,4 @@ ENV ADMIN_PASSWORD=frappe \
     USE_SSL=false \
     DEVELOPER_MODE=false
 
-ENTRYPOINT ["/sbin/tini", "--", "sh", "/scripts/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/usr/local/sbin/entrypoint.sh"]

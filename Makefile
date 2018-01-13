@@ -26,6 +26,14 @@ push:
 run:
 	@docker run --name run$(SOME_CONTAINER) --rm $(IMAGE)
 
+.PHONY: up
+up:
+	@docker-compose -f $(TAG)/docker-compose.yml up
+
+.PHONY: info
+info:
+	@docker inspect -f '{{.Config.Labels}}' $(IMAGE)
+
 .PHONY: ssh
 ssh:
 	@docker run --name ssh$(SOME_CONTAINER) --rm -it --entrypoint /bin/sh $(IMAGE)
